@@ -1,5 +1,5 @@
-tiny BASIC
-==========
+tinybasic
+=========
 
 A tiny BASIC parser, interpreter and compiler.
 
