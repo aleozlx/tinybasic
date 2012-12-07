@@ -147,8 +147,7 @@ class TinyBasic:
         while (stmts):
             if self.curr >= 0:
                 try:
-                    n, line = stmts.next()
-                    self.curr = n
+                    self.curr, line = stmts.next()
                     self.stmt(line)
                 except:
                     break
