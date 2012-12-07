@@ -39,6 +39,7 @@ expr_list   = expr _ , _ expr_list
             | str _ , _ expr_list
             | str
 expr        = term _ binop _ expr               join
+            | term _ relop _ expr               join
             | term
 term        = var
             | num
@@ -62,20 +63,25 @@ esc_char    = \\(['"/\\])
             | \\([bfnrt])                       escape
 num         = (\-) num
             | (\d+)
-relop       = (<|>|=)
+relop       = (<>|><|<=|<|>=|>|=)               rep_op
 binop       = (\+|\-|\*|\/)
 l_paren     = (\()
 r_paren     = (\)) 
 _           = \s*
 """
 
+def rep_op(s):
+    if s == "<>" or s == "><":
+        return "!="
+    return s
 
 class TinyBasic:
 
     def __init__(self):
         self.parser = Parser(grammar, 
-                             hug=hug, 
-                             join=join, 
+                             hug=hug,
+                             join=join,
+                             rep_op=rep_op,
                              escape=re.escape)
 
     def parse(self, program):
@@ -88,11 +94,7 @@ class TinyBasic:
 if __name__ == "__main__":
 
     program = r'''
-        10 PRINT "HELLO", A + 1
-        20 RETURN
-        40 IF 1+2 < 3+4 THEN PRINT "YES"
-        END
-        RETURN
+        10 PRINT "Hello", "World", "!"
     '''
 
     tb = TinyBasic()
