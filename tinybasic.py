@@ -1,6 +1,10 @@
-from peglet import *
-from pprint import *
+import os
+import io
 import re
+import sys
+import pprint
+import argparse
+from peglet import *
 
 
 grammar = r"""
@@ -17,6 +21,7 @@ stmt        = print_stmt
             | list_stmt
             | run_stmt
             | end_stmt
+            | rem_stmt
 
 print_stmt  = (PRINT\b) _ expr_list
 let_stmt    = (LET\b) _ var _ (?:=) _ expr
@@ -27,6 +32,7 @@ clear_stmt  = (CLEAR\b)
 list_stmt   = (LIST\b)
 run_stmt    = (RUN\b)
 end_stmt    = (END\b)
+rem_stmt    = (REM\b) _ str
 
 expr_list   = expr _ , _ expr_list 
             | expr 
@@ -80,9 +86,24 @@ class TinyBasic:
                              repop=repop,
                              quote=quote,
                              escape=re.escape)
+        self.ast = None
+        self.curr = 0 
         self.symbols = {}
         self.memory = {}
-        self.curr = 0 
+    
+    def repl(self):
+        line = str(raw_input())
+        if line == "QUIT":
+            sys.exit(0)
+        else:
+            try:
+                self.parse(line)
+                self.eval()
+                self.curr = 0
+            except:
+                pass
+            self.repl()
+
     def parse(self, program):
         self.ast = self.parser(program)
     
@@ -119,7 +140,7 @@ class TinyBasic:
         elif head == "END":
             self.end_stmt()
         else:
-            print "?"
+            print "invalid statement"
 
     def print_stmt(self, xs):
         print " ".join(self.expr_list(xs))
@@ -130,7 +151,7 @@ class TinyBasic:
 
     def input_stmt(self, xs):
         for x in xs:
-            self.symbols[x] = str(raw_input("?"))
+            self.symbols[x] = str(raw_input("? "))
     
     def if_stmt(self, xs):
         head, tail = xs[0], xs[2:]
@@ -143,7 +164,7 @@ class TinyBasic:
         self.run_stmt()
     
     def run_stmt(self):
-        stmts = self.gen_stmt()
+        stmts = self.gen_stmt(self.memory)
         while (stmts):
             if self.curr >= 0:
                 try:
@@ -154,7 +175,7 @@ class TinyBasic:
             else: 
                 break
 
-    def gen_stmt(self):
+    def gen_stmt(self, memory):
         for k in sorted(self.memory):
             if k >= self.curr:
                 yield (k, self.memory[k])
@@ -163,8 +184,8 @@ class TinyBasic:
         self.curr = -1
 
     def list_stmt(self):
-        for line in self.ast:
-            print " ".join(line)
+        for k in sorted(self.memory):
+            print " ".join(list(self.memory[k]))
 
     def clear_stmt(self):
         self.memory = {}
@@ -174,30 +195,35 @@ class TinyBasic:
 
     def expr(self, x):
         if re.match("^\".*\"$", x):
-            return x
+            return x.replace("\"", "")
         else:
             vs = re.findall("[A-Z]", x)
             if vs:
                 for v in vs:
                     x = x.replace(v, self.var(v))
-            return str(eval(x))
+            try:
+                return str(eval(x))
+            except:
+                return x.replace("\"", "")
     
     def var(self, x):
         return self.symbols[x]
-
+    
 
 if __name__ == "__main__":
 
-    program = r'''
-        10 LET A = 0
-        20 IF A > 10 THEN GOTO 60
-        30 PRINT A
-        40 LET A = A + 1
-        50 GOTO 20
-        RUN
-    '''
+    arg_parser = argparse.ArgumentParser()
+    arg_parser.add_argument("path", nargs='?')
+    args = arg_parser.parse_args()
 
     tiny_basic = TinyBasic()
-    tiny_basic.parse(program)
-    pprint(tiny_basic.ast)
-    tiny_basic.eval()
+
+    if args.path:
+        if os.path.isfile(args.path):
+            with io.open(args.path) as f:
+                program = "".join(f.readlines())
+                program = program.encode("ascii", "ignore")
+                tiny_basic.parse(program)
+            tiny_basic.eval()
+    else:
+        tiny_basic.repl()
