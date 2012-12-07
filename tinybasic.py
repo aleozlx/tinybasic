@@ -78,7 +78,7 @@ def quote(s):
     return '"' + s + '"'
 
 class TinyBasic:
-
+    
     def __init__(self):
         self.parser = Parser(grammar, 
                              hug=hug,
@@ -112,7 +112,7 @@ class TinyBasic:
             if len(line) > 1:
                 head, tail = line[0], line[1:]
                 self.memory[head] = tail
-
+    
     def eval(self):
         self.store()
         for line in self.ast:
@@ -141,14 +141,14 @@ class TinyBasic:
             self.end_stmt()
         else:
             print "invalid statement"
-
+    
     def print_stmt(self, xs):
         print " ".join(self.expr_list(xs))
-
+    
     def let_stmt(self, xs):
         head, tail = xs[0], xs[1]
         self.symbols[head] = self.expr(tail)
-
+    
     def input_stmt(self, xs):
         for x in xs:
             self.symbols[x] = str(raw_input("? "))
@@ -174,22 +174,22 @@ class TinyBasic:
                     break
             else: 
                 break
-
+    
     def gen_stmt(self, memory):
         for k in sorted(self.memory):
             if k >= self.curr:
                 yield (k, self.memory[k])
-
+    
     def end_stmt(self):
         self.curr = -1
-
+    
     def list_stmt(self):
         for k in sorted(self.memory):
             print " ".join(list(self.memory[k]))
-
+    
     def clear_stmt(self):
         self.memory = {}
-
+    
     def expr_list(self, xs):
         return [self.expr(x) for x in xs]
 
@@ -205,28 +205,65 @@ class TinyBasic:
                 return str(eval(x))
             except:
                 return x.replace("\"", "")
-    
     def var(self, x):
         return self.symbols[x]
     
+    def compile(self):
+        self.c = ["#include <stdio.h>\n",
+                  "int main (void) {"]
+        for line in self.ast:
+            if len(line) > 1:
+                self.compile_stmt(line)
+        self.c.append("}")
+        #pprint.pprint(self.ast)
+        with io.open("test.c", "w") as f:
+            f.write(u"\n".join(self.c))
+    
+    def compile_stmt(self, stmt):
+        head, tail = stmt[0], stmt[1:]
+        if head == "REM":
+            self.compile_rem(tail)
+        else:
+            self.compile_labeled_stmt(stmt)
+
+    def compile_rem(self, xs):
+        head = xs[0].replace('"', "")
+        self.c.append("\t// %s" % head)
+
+    def compile_labeled_stmt(self, stmt):
+        label, head, tail = stmt[0], stmt[1], stmt[2:]
+        if head == "PRINT":
+            self.c.append("\tlabel_%s:" % label)
+            self.compile_print(tail)
+
+    def compile_print(self, xs):
+        ys = []
+        for x in xs:
+            ys.append(x)
+        s = "\"%s\\n\"" % "".join(ys).replace('"', "")
+        self.c.append("\tprintf(%s);" % s)
+
 
 if __name__ == "__main__":
 
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("path", nargs='?')
     arg_parser.add_argument("-p", "--parse", action="store_true")
+    arg_parser.add_argument("-c", "--compile", action="store_true")
     args = arg_parser.parse_args()
 
     tiny_basic = TinyBasic()
 
     if args.path:
         if os.path.isfile(args.path):
-            with io.open(args.path) as f:
+            with io.open(args.path, "r") as f:
                 program = "".join(f.readlines())
                 program = program.encode("ascii", "ignore")
                 tiny_basic.parse(program)
             if args.parse:
                 pprint.pprint(tiny_basic.ast)
+            elif args.compile:
+                tiny_basic.compile()
             else:
                 tiny_basic.eval()
     else:
