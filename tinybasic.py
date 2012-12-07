@@ -214,6 +214,7 @@ if __name__ == "__main__":
 
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument("path", nargs='?')
+    arg_parser.add_argument("-p", "--parse", action="store_true")
     args = arg_parser.parse_args()
 
     tiny_basic = TinyBasic()
@@ -224,6 +225,9 @@ if __name__ == "__main__":
                 program = "".join(f.readlines())
                 program = program.encode("ascii", "ignore")
                 tiny_basic.parse(program)
-            tiny_basic.eval()
+            if args.parse:
+                pprint.pprint(tiny_basic.ast)
+            else:
+                tiny_basic.eval()
     else:
         tiny_basic.repl()
