@@ -85,15 +85,22 @@ class TinyBasic:
                              quote=quote,
                              escape=re.escape)
         self.symbols = {}
-
+        self.memory = {}
+        self.i = 0 
     def parse(self, program):
         self.ast = self.parser(program)
+    
+    def store(self):
+        for line in self.ast:
+            if len(line) > 1:
+                head, tail = line[0], line[1:]
+                self.memory[head] = tail
 
     def eval(self):
+        self.store()
         for line in self.ast:
-            if len(line) != 1:
-                line = line[1:]    
-            self.stmt(line)
+            if len(line) == 1:
+                self.stmt(line)
     
     def stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
@@ -105,13 +112,21 @@ class TinyBasic:
             self.input_stmt(tail)
         elif head == "IF":
             self.if_stmt(tail)
+        elif head == "GOTO":
+            self.goto_stmt(tail)
+        elif head == "CLEAR":
+            self.clear_stmt()
+        elif head == "LIST":
+            self.list_stmt()
+        elif head == "RUN":
+            self.run_stmt()
 
     def print_stmt(self, xs):
         print " ".join(self.expr_list(xs))
 
     def let_stmt(self, xs):
         head, tail = xs[0], xs[1]
-        self.symbols[head] = tail
+        self.symbols[head] = self.expr(tail)
 
     def input_stmt(self, xs):
         for x in xs:
@@ -121,6 +136,33 @@ class TinyBasic:
         head, tail = xs[0], xs[2:]
         if self.expr(head) == "True":
             self.stmt(tail)
+    
+    def goto_stmt(self, xs):
+        n = self.expr(xs[0])
+        self.i = n
+        self.run_stmt()
+    
+    def run_stmt(self):
+        stmts = self.gen_stmt()
+        while (stmts):
+            try:
+                n, line = stmts.next()
+                self.i = n
+                self.stmt(line)
+            except:
+                break
+
+    def gen_stmt(self):
+        for k in sorted(self.memory):
+            if k >= self.i:
+                yield (k, self.memory[k])
+
+    def list_stmt(self):
+        for line in self.ast:
+            print " ".join(line)
+
+    def clear_stmt(self):
+        self.memory = {}
 
     def expr_list(self, xs):
         return [self.expr(x) for x in xs]
@@ -141,8 +183,13 @@ class TinyBasic:
 if __name__ == "__main__":
 
     program = r'''
-        10 LET A = 10
-        20 IF A < 2 THEN PRINT "A is less than 2"
+        10 LET A = 0
+        20 IF A > 10 THEN GOTO 60
+        30 PRINT A
+        40 LET A = A + 1
+        50 GOTO 20
+        60 END
+        RUN
     '''
 
     tiny_basic = TinyBasic()
@@ -152,4 +199,3 @@ if __name__ == "__main__":
     print "\n"
 
     tiny_basic.eval()
-    #pprint(tiny_basic.symbols)
