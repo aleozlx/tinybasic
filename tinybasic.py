@@ -92,7 +92,7 @@ class TinyBasic:
         self.memory = {}
     
     def repl(self):
-        line = str(raw_input())
+        line = str(raw_input("> "))
         if line == "QUIT":
             sys.exit(0)
         else:
