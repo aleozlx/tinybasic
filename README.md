@@ -1,7 +1,7 @@
 tinybasic
 =========
 
-A tiny BASIC parser and interpreter.
+A tiny BASIC parser, interpreter and compiler.
 
 ##Usage
 
