@@ -13,8 +13,6 @@ stmt        = print_stmt
             | input_stmt
             | if_stmt
             | goto_stmt
-            | gosub_stmt
-            | return_stmt
             | clear_stmt
             | list_stmt
             | run_stmt
@@ -25,8 +23,6 @@ let_stmt    = (LET\b) _ var _ (?:=) _ expr
 input_stmt  = (INPUT\b) _ var_list
 if_stmt     = (IF\b) _ expr _ (THEN\b) _ stmt
 goto_stmt   = (GOTO\b) _ expr
-gosub_stmt  = (GOSUB\b) _ expr
-return_stmt = (RETURN\b)
 clear_stmt  = (CLEAR\b)
 list_stmt   = (LIST\b)
 run_stmt    = (RUN\b)
@@ -86,7 +82,7 @@ class TinyBasic:
                              escape=re.escape)
         self.symbols = {}
         self.memory = {}
-        self.i = 0 
+        self.curr = 0 
     def parse(self, program):
         self.ast = self.parser(program)
     
@@ -120,6 +116,10 @@ class TinyBasic:
             self.list_stmt()
         elif head == "RUN":
             self.run_stmt()
+        elif head == "END":
+            self.end_stmt()
+        else:
+            print "?"
 
     def print_stmt(self, xs):
         print " ".join(self.expr_list(xs))
@@ -139,23 +139,29 @@ class TinyBasic:
     
     def goto_stmt(self, xs):
         n = self.expr(xs[0])
-        self.i = n
+        self.curr = n
         self.run_stmt()
     
     def run_stmt(self):
         stmts = self.gen_stmt()
         while (stmts):
-            try:
-                n, line = stmts.next()
-                self.i = n
-                self.stmt(line)
-            except:
+            if self.curr >= 0:
+                try:
+                    n, line = stmts.next()
+                    self.curr = n
+                    self.stmt(line)
+                except:
+                    break
+            else: 
                 break
 
     def gen_stmt(self):
         for k in sorted(self.memory):
-            if k >= self.i:
+            if k >= self.curr:
                 yield (k, self.memory[k])
+
+    def end_stmt(self):
+        self.curr = -1
 
     def list_stmt(self):
         for line in self.ast:
@@ -180,6 +186,7 @@ class TinyBasic:
     def var(self, x):
         return self.symbols[x]
 
+
 if __name__ == "__main__":
 
     program = r'''
@@ -188,14 +195,10 @@ if __name__ == "__main__":
         30 PRINT A
         40 LET A = A + 1
         50 GOTO 20
-        60 END
         RUN
     '''
 
     tiny_basic = TinyBasic()
     tiny_basic.parse(program)
     pprint(tiny_basic.ast)
-    
-    print "\n"
-
     tiny_basic.eval()
