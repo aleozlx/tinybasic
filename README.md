@@ -16,12 +16,12 @@ python tinybasic.py [path]
 
 ###Parse file
 ``` python
-python tinybasic.py [path] -p
+python tinybasic.py [path] [-p, --parse]
 ```
 
 ###Compile file to C ... at your own risk
 ``` python
-python tinybasic.py [path] -c
+python tinybasic.py [path] [-c, --compile]
 ```
 
 ##Tools 
