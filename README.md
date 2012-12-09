@@ -20,7 +20,7 @@ python tinybasic.py [path]
 python tinybasic.py [path] [-p, --parse]
 ```
 
-###Compile file to C ... at your own risk
+###Compile file to C ... at your own risk ... in progress
 ```
 python tinybasic.py [path] [-c, --compile]
 ```
