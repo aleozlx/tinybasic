@@ -91,43 +91,26 @@ class Parser(object):
         return '"%s"' % token
 
 
-class TinyBasic:
+class Interpreter(object):
     
     def __init__(self):
         self.parser = Parser()
-        self.ast = None
-        self.curr = 0 
+        self.parse_tree = None
+        self.curr = 0
         self.symbols = {}
         self.memory = {}
     
-    def repl(self):
-        line = str(raw_input("> "))
-        if line == "QUIT":
-            sys.exit(0)
-        else:
-            try:
-                self.parse(line)
-                self.eval()
-                self.curr = 0
-            except:
-                pass
-            self.repl()
-
-    def parse(self, program):
-        self.ast = self.parser(program)
-    
-    def store(self):
-        for line in self.ast:
+    def __call__(self, program):
+        self.parse_tree = self.parser(program)
+        for line in self.parse_tree:
             if len(line) > 1:
                 head, tail = line[0], line[1:]
                 self.memory[head] = tail
-    
-    def eval(self):
-        self.store()
-        for line in self.ast:
+        for line in self.parse_tree:
             if len(line) == 1:
                 self.stmt(line)
-    
+        self.curr = 0
+
     def stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
         if head == "PRINT":
@@ -217,17 +200,25 @@ class TinyBasic:
 
     def var(self, x):
         return self.symbols[x]
+
+
+class Compiler(object):
     
-    def compile(self):
+    def __init__(self):
+        self.parser = Parser()
+        self.parse_tree = None
+
+    def __call__(self, program):
+        self.parse_tree = self.parser(program)
         self.c = ["#include <stdio.h>\n",
                   "int main (void) {"]
-        for line in self.ast:
+        for line in self.parse_tree:
             if len(line) > 1:
                 self.compile_stmt(line)
         self.c.append("}")
-        #pprint.pprint(self.ast)
-        with io.open("test.c", "w") as f:
-            f.write(u"\n".join(self.c))
+        print "\n".join(self.c)
+        #with io.open("test.c", "w") as f:
+        #   f.write(u"\n".join(self.c))
     
     def compile_stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
@@ -254,6 +245,34 @@ class TinyBasic:
         self.c.append("\tprintf(%s);" % s)
 
 
+class TinyBasic(object):
+    
+    def __init__(self):
+        self.parser = Parser()
+        self.interpreter = Interpreter()
+        self.compiler = Compiler()
+    
+    def parse(self, program):
+        return self.parser(program)
+    
+    def interpret(self, program):
+        self.interpreter(program)
+
+    def compile(self, program):
+        self.compiler(program)
+
+    def repl(self):
+        line = str(raw_input("> "))
+        if line == "QUIT":
+            sys.exit(0)
+        try: 
+            self.interpret(line)
+        except: 
+            if line:
+                print "parse error"
+        self.repl()
+
+
 if __name__ == "__main__":
 
     arg_parser = argparse.ArgumentParser()
@@ -269,12 +288,12 @@ if __name__ == "__main__":
             with io.open(args.path, "r") as f:
                 program = "".join(f.readlines())
                 program = program.encode("ascii", "ignore")
-                tiny_basic.parse(program)
-            if args.parse:
-                pprint.pprint(tiny_basic.ast)
-            elif args.compile:
-                tiny_basic.compile()
-            else:
-                tiny_basic.eval()
+                if args.parse:
+                    for line in tiny_basic.parse(program):
+                        print line
+                elif args.compile:
+                    tiny_basic.compile(program)
+                else:
+                    tiny_basic.interpret(program)
     else:
         tiny_basic.repl()
