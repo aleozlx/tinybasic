@@ -94,11 +94,11 @@ class Parser(object):
 class Interpreter(object):
     
     def __init__(self):
-        self.parser = Parser()
-        self.parse_tree = None
         self.curr = 0
-        self.symbols = {}
         self.memory = {}
+        self.symbols = {}
+        self.parse_tree = None
+        self.parser = Parser()
     
     def __call__(self, program):
         self.parse_tree = self.parser(program)
@@ -131,8 +131,6 @@ class Interpreter(object):
             self.run_stmt()
         elif head == "END":
             self.end_stmt()
-        else:
-            print "invalid statement"
     
     def print_stmt(self, xs):
         print " ".join(self.expr_list(xs))
@@ -217,8 +215,6 @@ class Compiler(object):
                 self.compile_stmt(line)
         self.c.append("}")
         print "\n".join(self.c)
-        #with io.open("test.c", "w") as f:
-        #   f.write(u"\n".join(self.c))
     
     def compile_stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
