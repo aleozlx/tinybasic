@@ -224,7 +224,6 @@ class Compiler(object):
                 if id not in self.symbols:
                     self.compile_var((id, '""'))
         for line in self.parse_tree:
-            print "\t"
             self.compile_stmt(line)
         print "}"
     
