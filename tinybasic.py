@@ -27,6 +27,7 @@ class Parser(object):
 
     print_stmt  = (PRINT\b) _ expr_list
     let_stmt    = (LET\b) _ var _ (?:=) _ expr
+                | (LET\b) _ var _ (?:=) _ str
     input_stmt  = (INPUT\b) _ var_list
     if_stmt     = (IF\b) _ expr _ (THEN\b) _ stmt
     goto_stmt   = (GOTO\b) _ expr
@@ -205,40 +206,70 @@ class Compiler(object):
     def __init__(self):
         self.parser = Parser()
         self.parse_tree = None
+        self.symbols = {}
 
     def __call__(self, program):
         self.parse_tree = self.parser(program)
-        self.c = ["#include <stdio.h>\n",
-                  "int main (void) {"]
+        print "#include <stdio.h>"
+        print "int main (void) {"
         for line in self.parse_tree:
-            if len(line) > 1:
+            if "LET" in line:
+                self.compile_stmt(line[1:])
+        for line in self.parse_tree:
+            if "LET" not in line:
                 self.compile_stmt(line)
-        self.c.append("}")
-        print "\n".join(self.c)
+        print "}"
     
     def compile_stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
-        if head == "REM":
-            self.compile_rem(tail)
+        if tail:
+            if head == "LET":
+                self.compile_var(tail)
+            elif head == "REM":
+                self.compile_comment(tail)
+            elif head == "PRINT":
+                self.compile_printf(tail)
+            else:
+                self.compile_label(head)
+                self.compile_stmt(tail)
         else:
-            self.compile_labeled_stmt(stmt)
+            if head == "END":
+                self.compile_return()
+    
+    def compile_var(self, xs):
+        t, id, v = None, xs[0], xs[1]
+        if self.is_quoted(v):
+            t = "char"
+        else:
+            t = "int"
+        self.symbols[id] = (t, v)
+        if t == "char":
+            print "%s %s[] = %s;" % (t, id, v)
+        elif t == "int":
+            print "%s %s = %s;" % (t, id, v)
+    
+    def compile_comment(self, xs):
+        print "// %s" % xs[0].replace('"', "")
 
-    def compile_rem(self, xs):
-        head = xs[0].replace('"', "")
-        self.c.append("\t// %s" % head)
-
-    def compile_labeled_stmt(self, stmt):
-        label, head, tail = stmt[0], stmt[1], stmt[2:]
-        if head == "PRINT":
-            self.c.append("\tlabel_%s:" % label)
-            self.compile_print(tail)
-
-    def compile_print(self, xs):
-        ys = []
+    def compile_label(self, label):
+        print "label_%s:" % label
+    
+    def compile_printf(self, xs):
         for x in xs:
-            ys.append(x)
-        s = "\"%s\\n\"" % "".join(ys).replace('"', "")
-        self.c.append("\tprintf(%s);" % s)
+            if x in self.symbols:
+                t, v = self.symbols[x]
+                if t == "char":
+                    print 'printf("%%s", %s);' % x
+                elif t == "int":
+                    print 'printf("%%d", %s);' % x
+            else:
+                print "printf(%s);" % x
+
+    def compile_return(self):
+        print "return 0;"
+
+    def is_quoted(self, s):
+        return re.match('^".*"$', s)
 
 
 class TinyBasic(object):
