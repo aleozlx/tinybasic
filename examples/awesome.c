@@ -7,13 +7,11 @@ char* A;
 label_10:
 printf("%s\n", "What's your name?");
 label_20:
-
-        A = malloc(sizeof(char) * 50);
-        fgets(A, 50, stdin);
-        if (A[strlen(A) - 1] == '\n') {
-            A[strlen(A) - 1] = '\0';
-        }
-        
+A = malloc(sizeof(char) * 50); 
+fgets(A, 50, stdin); 
+if (A[strlen(A) - 1] == '\n') { 
+A[strlen(A) - 1] = '\0'; 
+}
 label_30:
 printf("%s %s\n", A, "is awesome!");
 label_40:
