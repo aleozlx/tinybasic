@@ -1,7 +1,7 @@
 tinybasic
 =========
 
-A tiny BASIC parser, interpreter and compiler.
+A tiny BASIC parser, interpreter and compiler. 
 
 ##Usage
 
@@ -20,7 +20,7 @@ python tinybasic.py [path]
 python tinybasic.py [path] [-p, --parse]
 ```
 
-###Compile file to C ... at your own risk ... in progress
+###Compile file to C
 ```
 python tinybasic.py [path] [-c, --compile]
 ```
