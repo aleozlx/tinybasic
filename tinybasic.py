@@ -251,15 +251,15 @@ class Compiler(object):
                 self.compile_return()
     
     def compile_input(self, xs):
-        id, size = xs[0], 100
-        self.malloc_symbols[id] = size
+        id, buffer = xs[0], 50
+        self.malloc_symbols[id] = buffer
         print '''
         {0} = malloc(sizeof(char) * {1});
-        fgets({0}, 50, stdin);
+        fgets({0}, {1}, stdin);
         if ({0}[strlen({0}) - 1] == '\\n') {{
             {0}[strlen({0}) - 1] = '\\0';
         }}
-        '''.format(id, size)
+        '''.format(id, buffer)
 
     def compile_if(self, xs):
         cond, stmt = xs[0], xs[2:]
