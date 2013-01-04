@@ -3,7 +3,7 @@
 #include <string.h>
 int main (void) {
 char* A;
-// A PROGRAM THAT SAYS YOU'RE ARE AWESOME
+// A PROGRAM THAT SAYS YOU'RE AWESOME
 label_10:
 printf("%s\n", "What's your name?");
 label_20:
