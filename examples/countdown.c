@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 int main (void) {
 int A;
 // A PROGRAM THAT COUNTS DOWN FROM 10 TO 0

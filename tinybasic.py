@@ -213,6 +213,7 @@ class Compiler(object):
         self.parse_tree = self.parser(program)
         print "#include <stdio.h>"
         print "#include <stdlib.h>"
+        print "#include <string.h>"
         print "int main (void) {"
         for line in self.parse_tree:
             if "LET" in line:
@@ -252,8 +253,13 @@ class Compiler(object):
     def compile_input(self, xs):
         id, size = xs[0], 100
         self.malloc_symbols[id] = size
-        print "%s = malloc(sizeof(char)*(%d));" % (id, size)
-        print "fgets(%s, 100, stdin);" % id
+        print '''
+        {0} = malloc(sizeof(char) * {1});
+        fgets({0}, 50, stdin);
+        if ({0}[strlen({0}) - 1] == '\\n') {{
+            {0}[strlen({0}) - 1] = '\\0';
+        }}
+        '''.format(id, size)
 
     def compile_if(self, xs):
         cond, stmt = xs[0], xs[2:]
@@ -296,19 +302,27 @@ class Compiler(object):
         print "label_%s:" % n
     
     def compile_printf(self, xs):
+        fmt, args = [], []
         for x in xs:
             if x in self.symbols:
                 t, v = self.symbols[x]
                 if t == "char":
-                    print 'printf("%%s\\n", %s);' % x
+                    fmt.append("%s")
                 elif t == "int":
-                    print 'printf("%%d\\n", %s);' % x
+                    fmt.append("%d")
+                args.append(x)
             else:
                 try:
                     x = int(eval(x))
-                    print 'printf("%%d\\n", %s);' % x
+                    fmt.append("%d")
+                    args.append(str(x))
                 except:
-                    print 'printf("%%s\\n", %s);' % x
+                    fmt.append("%s")
+                    args.append(x)
+        if fmt and args:
+            fmt = " ".join(fmt)
+            args = ", ".join(args)
+            print 'printf("{0}\\n", {1});'.format(fmt, args)
 
     def compile_return(self):
         for id in self.malloc_symbols:
