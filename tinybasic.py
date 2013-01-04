@@ -207,16 +207,22 @@ class Compiler(object):
         self.parser = Parser()
         self.parse_tree = None
         self.symbols = {}
+        self.malloc_symbols = {}
 
     def __call__(self, program):
         self.parse_tree = self.parser(program)
         print "#include <stdio.h>"
+        print "#include <stdlib.h>"
         print "int main (void) {"
         for line in self.parse_tree:
             if "LET" in line:
-                sym = line[2]
-                if sym not in self.symbols:
+                id = line[2]
+                if id not in self.symbols:
                     self.compile_stmt(line[1:])
+            elif "INPUT" in line:
+                id = line[2]
+                if id not in self.symbols:
+                    self.compile_var((id, '""'))
         for line in self.parse_tree:
             print "\t"
             self.compile_stmt(line)
@@ -245,7 +251,10 @@ class Compiler(object):
                 self.compile_return()
     
     def compile_input(self, xs):
-        pass
+        id, size = xs[0], 100
+        self.malloc_symbols[id] = size
+        print "%s = malloc(sizeof(char)*(%d));" % (id, size)
+        print "fgets(%s, 100, stdin);" % id
 
     def compile_if(self, xs):
         cond, stmt = xs[0], xs[2:]
@@ -262,7 +271,7 @@ class Compiler(object):
             self.compile_var_set(xs)
         else:
             self.compile_var_dec(xs)
-
+    
     def compile_var_dec(self, xs):
         t, id, v = None, xs[0], xs[1]
         if self.is_quoted(v):
@@ -303,6 +312,8 @@ class Compiler(object):
                     print 'printf("%%s\\n", %s);' % x
 
     def compile_return(self):
+        for id in self.malloc_symbols:
+            print "free(%s);" % id
         print "return 0;"
 
     def is_quoted(self, s):
