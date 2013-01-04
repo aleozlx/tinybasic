@@ -1,8 +1,7 @@
 REM "A VERY SIMPLE PROGRAM"
 
 10 LET A = "Hello World!"
-20 LET B = 1 + 2
-30 PRINT A, B
-40 END
+20 PRINT A
+30 END
 
 RUN

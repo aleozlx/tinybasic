@@ -214,21 +214,29 @@ class Compiler(object):
         print "int main (void) {"
         for line in self.parse_tree:
             if "LET" in line:
-                self.compile_stmt(line[1:])
+                sym = line[2]
+                if sym not in self.symbols:
+                    self.compile_stmt(line[1:])
         for line in self.parse_tree:
-            if "LET" not in line:
-                self.compile_stmt(line)
+            print "\t"
+            self.compile_stmt(line)
         print "}"
     
     def compile_stmt(self, stmt):
         head, tail = stmt[0], stmt[1:]
         if tail:
-            if head == "LET":
+            if head == "IF":
+                self.compile_if(tail)
+            elif head == "LET":
                 self.compile_var(tail)
             elif head == "REM":
                 self.compile_comment(tail)
+            elif head == "GOTO":
+                self.compile_goto(tail)
             elif head == "PRINT":
                 self.compile_printf(tail)
+            elif head == "INPUT":
+                self.compile_input(tail)
             else:
                 self.compile_label(head)
                 self.compile_stmt(tail)
@@ -236,7 +244,26 @@ class Compiler(object):
             if head == "END":
                 self.compile_return()
     
+    def compile_input(self, xs):
+        pass
+
+    def compile_if(self, xs):
+        cond, stmt = xs[0], xs[2:]
+        print "if (%s) {" % (cond)
+        self.compile_stmt(stmt)
+        print "}"
+
+    def compile_goto(self, xs):
+        print "goto label_%s;" % xs[0]
+
     def compile_var(self, xs):
+        id = xs[0]
+        if id in self.symbols:
+            self.compile_var_set(xs)
+        else:
+            self.compile_var_dec(xs)
+
+    def compile_var_dec(self, xs):
         t, id, v = None, xs[0], xs[1]
         if self.is_quoted(v):
             t = "char"
@@ -244,26 +271,36 @@ class Compiler(object):
             t = "int"
         self.symbols[id] = (t, v)
         if t == "char":
-            print "%s %s[] = %s;" % (t, id, v)
+            print "%s* %s;" % (t, id)
         elif t == "int":
-            print "%s %s = %s;" % (t, id, v)
-    
+            print "%s %s;" % (t, id)
+
+    def compile_var_set(self, xs):
+        id, nv = xs[0], xs[1]
+        t, ov = self.symbols[id] 
+        self.symbols[id] = (t, nv)
+        print "%s = %s;" % (id, nv)
+
     def compile_comment(self, xs):
         print "// %s" % xs[0].replace('"', "")
 
-    def compile_label(self, label):
-        print "label_%s:" % label
+    def compile_label(self, n):
+        print "label_%s:" % n
     
     def compile_printf(self, xs):
         for x in xs:
             if x in self.symbols:
                 t, v = self.symbols[x]
                 if t == "char":
-                    print 'printf("%%s", %s);' % x
+                    print 'printf("%%s\\n", %s);' % x
                 elif t == "int":
-                    print 'printf("%%d", %s);' % x
+                    print 'printf("%%d\\n", %s);' % x
             else:
-                print "printf(%s);" % x
+                try:
+                    x = int(eval(x))
+                    print 'printf("%%d\\n", %s);' % x
+                except:
+                    print 'printf("%%s\\n", %s);' % x
 
     def compile_return(self):
         print "return 0;"
