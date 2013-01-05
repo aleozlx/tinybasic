@@ -2,7 +2,6 @@ import os
 import io
 import re
 import sys
-import pprint
 import argparse
 import peglet
 
